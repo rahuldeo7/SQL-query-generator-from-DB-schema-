@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive SQL Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        input, button, textarea { margin: 10px 0; width: 100%; padding: 8px; }
+        #tables, #sql { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+        button { width: auto; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>Interactive SQL Generator</h2>
+
+    <!-- Step 1: Enter User Query -->
+    <textarea id="userQuery" placeholder="Enter your natural language query here..."></textarea>
+    <button onclick="sendInteractiveQuery()">Detect Tables</button>
+
+    <!-- Step 2: Show Detected Tables -->
+    <div id="tables" style="display:none;">
+        <h4>Detected Tables:</h4>
+        <div id="tablesList"></div>
+        <textarea id="finalQuery"></textarea>
+        <button onclick="confirmQuery(true)">Confirm & Generate SQL</button>
+        <button onclick="confirmQuery(false)">Modify Query</button>
+    </div>
+
+    <!-- Step 3: Show Generated SQL -->
+    <div id="sql" style="display:none;">
+        <h4>Generated SQL:</h4>
+        <pre id="sqlQuery"></pre>
+    </div>
+
+<script>
+async function sendInteractiveQuery() {
+    const query = document.getElementById("userQuery").value;
+    if (!query) return alert("Enter a query first!");
+
+    const res = await fetch("/query/interactive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_query: query })
+    });
+
+    const data = await res.json();
+    if (data.error) return alert(data.error);
+
+    // Show detected tables
+    document.getElementById("tables").style.display = "block";
+    document.getElementById("tablesList").innerText = data.tables_detected.join(", ");
+    document.getElementById("finalQuery").value = data.user_query;
+    document.getElementById("sql").style.display = "none";
+}
+
+async function confirmQuery(confirmed) {
+    const finalQuery = document.getElementById("finalQuery").value;
+
+    const res = await fetch("/query/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmed: confirmed, final_query: finalQuery })
+    });
+
+    const data = await res.json();
+    if (data.error) return alert(data.error);
+
+    if (confirmed) {
+        // Show generated SQL
+        document.getElementById("sql").style.display = "block";
+        document.getElementById("sqlQuery").innerText = data.sql_query;
+    } else {
+        alert(data.message);
+    }
+}
+</script>
+</body>
+</html>
